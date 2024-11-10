@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>iWait</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        /* Set the background color of the entire website to light blue */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 0;
+            margin: 0;
+            background-color: rgb(173, 203, 223); /* Light blue background */
+        }
+        
+        h1 {
+            font-size: 4em;
+            margin: 10px;
+        }
+
+        /* Responsive button styling */
+        .button {
+            padding: 10px;
+            width: 90%;
+            max-width: 1400px;
+            box-sizing: border-box;
+            margin: 10px 0;
+            border: none;
+            border-radius: 12px;
+            height: calc((100vh - 20vh) / 3);
+            font-size: calc(2vw + 2vh);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.05s, box-shadow 0.05s;
+        }
+
+        .text_state {
+            padding: 10px;
+            width: 90%;
+            max-width: 1400px;
+            box-sizing: border-box;
+            margin: 10px 0;
+            border: none;
+            border-radius: 12px;
+            height: calc((100vh - 20vh) / 8); /* Half the height of .button */
+            font-size: calc(2vw + 1vh); /* Adjust font size to maintain proportionality */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #3d4887; /* Optional background color */
+            color: #ffffff; /* Optional text color */
+            font-family: Arial, sans-serif;
+        }
+    
+
+        .cancel { background-color: rgb(150, 21, 21); color: white; }
+        .request { background-color: rgb(1, 109, 1); color: white; }
+
+        /* Pressed button effect */
+        .button:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>iWait</h1>
+    <text id="stateButton" class="text_state">IDLE</text>
+    <button id="cancelButton" class="button cancel" onclick="cancelRequest()">Cancel</button>
+    <button id="requestButton" class="button request" onclick="requestService()">Request Service</button>
+
+    <script>
+        var socket = new WebSocket('ws://' + location.host + '/ws'); // Establish WebSocket connection
+        
+        let started = false;
+        let audioComing;
+        let audioRequested;
+        let state = "IDLE";
+
+        // When WebSocket connection is open
+        socket.onopen = () => {
+            console.log('WebSocket connected');
+        };
+
+        // When a message is received from the server
+        socket.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            var button = document.getElementById('stateButton');
+
+            button.innerText = String(data.state);
+            state = data.state;
+            if (audioComing && data.state == "COMING") {
+                audioComing.play();
+            } 
+        };
+
+        // Button click event: Send message to the server when clicked
+        document.getElementById('stateButton').addEventListener('click', function() {
+            var button = this;
+            var state = button.classList.contains('off') ? 'ON' : 'OFF'; // Toggle the state
+            var message = 'State is now ' + state;
+            socket.send(message); // Send message to the server
+            console.log('Sent message:', message);
+        });
+        
+
+        function cancelRequest() {
+            // There should not be a song playing when the request is cancelled
+            if (audioComing) {
+                audioComing.pause();
+                audioComing = null;
+            }
+            started = false;
+            console.log('Stopped');
+            socket.send("cancel");
+            state = "IDLE";
+        }
+
+        // not used atm
+        function acknowledgeComing(){
+            if (audioComing){
+                audioComing.pause();
+                audioComing = null;
+            }
+            started = false;
+            console.log('Stopped');
+            socket.send("idle");
+        }
+
+        function requestService() {
+            if (state == "COMING") {
+                acknowledgeComing();
+                return;
+            }
+
+            const downloadURL2 = "http://"  + location.host + "/sound-requested.wav";
+            audioRequested = new Audio(downloadURL2);
+            audioRequested.play();
+
+            const downloadURL = "http://"  + location.host + "/sound-coming.wav";
+            audioComing = new Audio(downloadURL);
+            audioComing.loop = true;
+            audioComing.play();
+            audioComing.pause();
+
+            started = true;
+            console.log('Started');
+            socket.send("requested");
+            state = "REQUESTED";
+        }
+
+        // NOT USED
+        function playSelectedFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (file && !started) {
+                console.log('Playing file!');
+                const fileURL = URL.createObjectURL(file);
+                audioComing = new Audio(fileURL);
+                audioComing.loop = true;
+                audioComing.play();
+                audioComing.pause();
+            } 
+        }
+
+    </script>
+</body>
+</html>

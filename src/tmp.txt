@@ -1,0 +1,127 @@
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <SPIFFS.h>
+#include "peripherals.h"
+
+
+
+const char* SSID = "DarkSideOfTheMoon";
+const char* PASSWORD = "maytheforcebewithyou";
+constexpr long BAUD_RATE = 115200;
+constexpr long TOGGLE_INTERVAL = 2000;
+
+AsyncWebServer server(80);
+AsyncWebSocket websocket("/ws");
+unsigned long previousMillis = 0;   
+
+enum State {
+    IDLE,
+    REQUESTED,
+    COMING,
+    ERROR,
+};
+
+State state = IDLE;
+
+const String stateToString(State state){
+    switch (state){
+        case IDLE:
+            return "IDLE";
+        case REQUESTED:
+            return "REQUESTED";
+        case COMING:
+            return "COMING";
+        case ERROR:
+            return "ERROR";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+
+// Send state update to all WebSocket clients
+void publishState() {
+    String msg = "{\"state\": \"" + stateToString(state) + "\"}";
+    websocket.textAll(msg);
+}
+
+
+void requestService() {
+    Serial.println("Service requested! Currently in state: " + stateToString(state));
+    #ifndef BTN_DAVID
+        handleServiceRequestPress();
+    #endif
+}
+
+
+// WebSocket request handler
+void onWebSocketEvent(
+    AsyncWebSocket *server, 
+    AsyncWebSocketClient *client, 
+    AwsEventType type,
+    void *arg, 
+    uint8_t *data, 
+    size_t len
+) {
+    if (type == WS_EVT_CONNECT) {
+        Serial.println("WebSocket client connected");
+    } else if (type == WS_EVT_DISCONNECT) {
+        Serial.println("WebSocket client disconnected");
+    } else if (type == WS_EVT_DATA) {
+        String message = String((char*)data).substring(0, len);
+        if (message.indexOf("\"command\":\"request\"") != -1) {
+            requestService();
+        }
+    }
+}
+
+
+void setup() {
+    Serial.begin(BAUD_RATE);
+    if (!SPIFFS.begin(true)) {
+        Serial.println("Failed to mount SPIFFS");
+        return;
+    }
+
+    setupPeripherals();
+
+    WiFi.begin(SSID, PASSWORD);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(1000);
+        Serial.println("Connecting to WiFi...");
+    }
+    Serial.print("Connected to WiFi! IP Address: ");
+    Serial.println(WiFi.localIP());
+
+    websocket.onEvent(onWebSocketEvent);
+    server.addHandler(&websocket);
+
+    // Serve index.html from SPIFFS
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/index.html", "text/html");
+    });
+
+    server.begin();
+}
+
+
+void loop() {
+    loopPheripherals();
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= TOGGLE_INTERVAL) {
+        previousMillis = currentMillis;
+        // Go to next state
+        if (state == IDLE) {
+            state = REQUESTED;
+        } else if (state == REQUESTED) {
+            state = COMING;
+        } else if (state == COMING) {
+            state = ERROR;
+        } else {
+            state = IDLE;
+        }
+        Serial.println("State: " + stateToString(state));
+        publishState();
+    }
+}

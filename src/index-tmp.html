@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>iWait</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        /* Set the background color of the entire website to light blue */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 0;
+            margin: 0;
+            background-color: rgb(173, 203, 223); /* Light blue background */
+        }
+        
+        h1 {
+            font-size: 4em;
+            margin: 10px;
+        }
+
+        /* Responsive button styling */
+        .button {
+            padding: 10px;
+            width: 90%;
+            max-width: 1400px;
+            box-sizing: border-box;
+            margin: 10px 0;
+            border: none;
+            border-radius: 12px;
+            height: calc((100vh - 20vh) / 3);
+            font-size: calc(2vw + 2vh);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.05s, box-shadow 0.05s;
+        }
+
+        /* Fixed color for state button text */
+        .state-button {
+            background-color: rgb(223, 87, 87);
+            color: black;
+        }
+
+        .cancel { background-color: rgb(79, 77, 77); color: white; }
+        .request { background-color: green; color: white; }
+
+        /* Pressed button effect */
+        .button:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>iWait</h1>
+    
+    <button id="stateButton" class="button state-button">State is IDLE</button>
+    <button id="cancelButton" class="button cancel">Cancel</button>
+    <button id="requestButton" class="button request">Request Service</button>
+
+    <script>
+        // Initialize WebSocket connection
+        var socket = new WebSocket('ws://' + location.host + '/ws');
+        
+        // WebSocket message handler
+        socket.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            var stateText = data.state;
+            
+            // Update the button text based on the state
+            document.getElementById('stateButton').innerText = 'State is ' + stateText;
+        };
+        
+        // Send "request" command to server
+        document.getElementById('requestButton').onclick = function() {
+            socket.send(JSON.stringify({ command: 'request' }));
+        };
+    </script>
+</body>
+</html>
