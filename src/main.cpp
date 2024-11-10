@@ -5,19 +5,14 @@
 #include <SPIFFS.h>
 #include "peripherals.h"
 
+// WiFi credentials (to be filled in)
 const char* ssid = "";
 const char* password = "";
-constexpr long BAUD_RATE = 115200;
-constexpr long TOGGLE_INTERVAL = 5000;
 
-// const char* ssid = "ESP32-Access-Point";
-// const char* password = "123456789";
+constexpr long BAUD_RATE = 115200;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws"); 
-
-unsigned long previousMillis = 0;   // Tracks the last time the state was toggled
-const long interval = 5000;         // Toggle interval (2 seconds)
 
 enum State {
     IDLE,
@@ -43,17 +38,15 @@ const String stateToString(State state){
 }
 
 /***** Function prototypes *****/ 
-void publishState();
 void switchState(State newState);
 void requestService();
 void handleRoot(AsyncWebServerRequest *request);
 void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 void notifyClients();
-/* ************************** */
+/* *************************** */
 
 void setup() {
     Serial.begin(BAUD_RATE);
-
 
     // Set your Static IP address
     IPAddress local_IP(192, 168, 43, 184);
@@ -69,11 +62,10 @@ void setup() {
     }
 
     setupPeripherals();
-    // WiFi.softAP(ssid, password);
-    // delay(4000);
     
     WiFi.begin(ssid, password);
     delay(2000);
+
     while (WiFi.status() != WL_CONNECTED) {
         delay(1000);
         Serial.println("Connecting to WiFi...");
@@ -107,34 +99,23 @@ void setup() {
 
 void loop() {
     loopPheripherals();
-    // Handle snooze button press
+
+    // Check if the snooze button was pressed
     if (snoozePressed){
         switchState(COMING);
         snoozePressed = false;
     }
-    // Toggle the state every 2 seconds
-    // unsigned long currentMillis = millis();
-    // if (currentMillis - previousMillis >= TOGGLE_INTERVAL) {
-    //     previousMillis = currentMillis;
-    //     if (state == REQUESTED){
-    //         switchState(COMING);
-    //     }
-    // }
 }
 
+// Switch the state and notify all WebSocket clients
 void switchState(State newState){
     state = newState;
     Serial.print("State changed to: " + stateToString(state) + "\n");
-    publishState();
-}
-
-// Send state update to all WebSocket clients
-void publishState() {
     String msg = "{\"state\": \"" + stateToString(state) + "\"}";
     ws.textAll(msg);
 }
 
-// Serve the webpage with WebSocket support
+// Use the index.html file in the SPIFFS as the root page
 void handleRoot(AsyncWebServerRequest *request) {
     request->send(SPIFFS, "/index.html", "text/html");
 }
@@ -167,9 +148,6 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
             switchState(IDLE);
             handleCancelPress();
         }
-        // Respond with an acknowledgment message
-        // String response = "Received: " + msg;
-        // client->text(response);  // Send the response back to the client
     }
 }
 

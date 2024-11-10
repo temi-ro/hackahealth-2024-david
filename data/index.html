@@ -38,6 +38,7 @@
             transition: transform 0.05s, box-shadow 0.05s;
         }
 
+        /* Text state styling */
         .text_state {
             padding: 10px;
             width: 90%;
@@ -98,18 +99,7 @@
             } 
         };
 
-        // Button click event: Send message to the server when clicked
-        document.getElementById('stateButton').addEventListener('click', function() {
-            var button = this;
-            var state = button.classList.contains('off') ? 'ON' : 'OFF'; // Toggle the state
-            var message = 'State is now ' + state;
-            socket.send(message); // Send message to the server
-            console.log('Sent message:', message);
-        });
-        
-
         function cancelRequest() {
-            // There should not be a song playing when the request is cancelled
             if (audioComing) {
                 audioComing.pause();
                 audioComing = null;
@@ -120,7 +110,7 @@
             state = "IDLE";
         }
 
-        // not used atm
+        // This is used to stop the coming sound
         function acknowledgeComing(){
             if (audioComing){
                 audioComing.pause();
@@ -131,43 +121,28 @@
             socket.send("idle");
         }
 
+        // Download the sound-requested.wav and the sound-coming.wav file
         function requestService() {
             if (state == "COMING") {
                 acknowledgeComing();
                 return;
             }
 
-            const downloadURL2 = "http://"  + location.host + "/sound-requested.wav";
+            const downloadURL2 = "http://" + location.host + "/sound-requested.wav";
             audioRequested = new Audio(downloadURL2);
             audioRequested.play();
 
-            const downloadURL = "http://"  + location.host + "/sound-coming.wav";
+            const downloadURL = "http://" + location.host + "/sound-coming.wav";
             audioComing = new Audio(downloadURL);
             audioComing.loop = true;
             audioComing.play();
             audioComing.pause();
 
             started = true;
-            console.log('Started');
+            console.log('requested');
             socket.send("requested");
             state = "REQUESTED";
         }
-
-        // NOT USED
-        function playSelectedFile() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            
-            if (file && !started) {
-                console.log('Playing file!');
-                const fileURL = URL.createObjectURL(file);
-                audioComing = new Audio(fileURL);
-                audioComing.loop = true;
-                audioComing.play();
-                audioComing.pause();
-            } 
-        }
-
     </script>
 </body>
 </html>

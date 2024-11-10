@@ -15,7 +15,7 @@ bool snoozePressed = false;
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-
+// Called when the snooze button is pressed
 void handleSnoozePress() {
     Serial.println("Snooze button pressed");
     detachInterrupt(digitalPinToInterrupt(BTN_SNOOZE));
@@ -23,10 +23,10 @@ void handleSnoozePress() {
     for(int i=0; i<10; i++) {
         strip.setPixelColor(i, 0, 0, 0);
     }
-    // strip.show();
     snoozePressed = true;
 }
 
+// Called when the cancel button is pressed
 void handleCancelPress() {
     Serial.println("Cancel button pressed");
     detachInterrupt(digitalPinToInterrupt(BTN_SNOOZE));
@@ -36,7 +36,7 @@ void handleCancelPress() {
     }
 }
 
- 
+// Called when the service request is triggered
 void handleServiceRequestPress() {
     pinMode(LED_PIN, OUTPUT);
     #ifdef BTN_DAVID
@@ -48,12 +48,10 @@ void handleServiceRequestPress() {
     for(int i=0; i<10; i++) {
      strip.setPixelColor(i, 255, 0, 0);
     }
-    // strip.show();
 }
 
-
+// Called in the setup function to initialize the peripherals
 void setupPeripherals() {
-    // TODO: INPUT_PULLDOWN
     pinMode(BTN_SNOOZE, INPUT_PULLUP);    
     pinMode(BUZZER_PIN, OUTPUT); 
     #ifdef BTN_DAVID
@@ -67,11 +65,11 @@ void setupPeripherals() {
 
     for(int i=0; i<10; i++) {
         strip.setPixelColor(i, 0, 0, 0);
-        // strip.show();
     }
 }
 
 
+// Update the color of the LED strip
 void loopPheripherals(){
     strip.show();
     delayMicroseconds(100);
