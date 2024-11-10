@@ -70,7 +70,7 @@ void setupPeripherals() {
 
 
 // Update the color of the LED strip
-void loopPheripherals(){
+void updatePeripherals(){
     strip.show();
     delayMicroseconds(100);
 }
