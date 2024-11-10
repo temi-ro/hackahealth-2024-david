@@ -1,4 +1,5 @@
 # hackahealth-2024-david
+This code is part of a project of the [Hackahealth 2024 Zürich](https://www.hackahealth.ch/)
 
 ## About David
 David is 26 years old and from St. Gallen. He likes going to concerts, for dinner, or drinks. David has participated in the very first Zurich Health Hackathon and is back with many ideas. For this edition, David wants to work on his independence in restaurants.
